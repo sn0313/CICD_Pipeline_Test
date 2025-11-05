@@ -8,18 +8,31 @@ env:
     DEPLOYMENT_ENV: "stage"
     REGISTRY: "sg.ocir.io/ax3rpuvlqpux/devops-repo/myapp"
     IMAGE_CREATED_BY: "OCIDevOps"
+    OCI_USERNAME: "<set in pipeline variables>"
+    OCIR_AUTH_TOKEN: "<set in pipeline variables>"
   exportedVariables:
     - BUILDRUN_HASH
     - DOCKER_TAG
 
 steps:
   - type: Command
-    name: "Docker Build and Tag"
+    name: "Docker Build and Push"
     timeoutInSeconds: 3000
     command: |
-      echo "Starting build..."
+      echo "Starting build step..."
 
-      # Extract 7-char hash from the Build Run ID
+      # DNS fix for Docker
+      mkdir -p /etc/docker
+      echo '{"dns": ["8.8.8.8", "8.8.4.4"]}' > /etc/docker/daemon.json
+      service docker restart || true
+
+      # Login to OCIR
+      echo $OCIR_AUTH_TOKEN | docker login sg.ocir.io -u $OCI_USERNAME --password-stdin
+      if [ $? -ne 0 ]; then
+        echo "Docker login failed"
+        exit 1
+      fi
+
       export BUILDRUN_HASH=$(echo "${OCI_BUILD_RUN_ID}" | rev | cut -c 1-7)
       echo "BUILDRUN_HASH: ${BUILDRUN_HASH}"
 
@@ -33,6 +46,11 @@ steps:
 
       # Push image to registry
       docker push ${DOCKER_TAG}
+      if [ $? -ne 0 ]; then
+        echo "Docker push failed"
+        exit 1
+      fi
+
     outputArtifacts:
       - name: dockerImage
         type: DOCKER_IMAGE
