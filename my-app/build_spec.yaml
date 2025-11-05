@@ -1,0 +1,39 @@
+version: 0.1
+component: build
+timeoutInSeconds: 3600
+runAs: root
+shell: bash
+env:
+  variables:
+    DEPLOYMENT_ENV: "stage"
+    REGISTRY: "sg.ocir.io/ax3rpuvlqpux/devops-repo/myapp"
+    IMAGE_CREATED_BY: "OCIDevOps"
+  exportedVariables:
+    - BUILDRUN_HASH
+    - DOCKER_TAG
+
+steps:
+  - type: Command
+    name: "Docker Build and Tag"
+    timeoutInSeconds: 3000
+    command: |
+      echo "Starting build..."
+
+      # Extract 7-char hash from the Build Run ID
+      export BUILDRUN_HASH=$(echo "${OCI_BUILD_RUN_ID}" | rev | cut -c 1-7)
+      echo "BUILDRUN_HASH: ${BUILDRUN_HASH}"
+
+      # Build versioned image tag
+      export IMAGE_VERSION="${BUILDRUN_HASH}-${IMAGE_CREATED_BY}"
+      export DOCKER_TAG="${REGISTRY}:${IMAGE_VERSION}"
+      echo "DOCKER_TAG: ${DOCKER_TAG}"
+
+      # Build docker image
+      docker build -t ${DOCKER_TAG} .
+
+      # Push image to registry
+      docker push ${DOCKER_TAG}
+    outputArtifacts:
+      - name: dockerImage
+        type: DOCKER_IMAGE
+        location: ${DOCKER_TAG}
