@@ -15,14 +15,13 @@ env:
     - DOCKER_TAG
 
 steps:
-
   - type: Command
     name: "Docker Build and Tag"
     timeoutInSeconds: 3000
     command: |
-      echo "Starting build..."
+      echo "Starting Docker build step..."
 
-      # Extract 7-char hash from the Build Run ID
+      # Extract 7-char hash from Build Run ID
       export BUILDRUN_HASH=$(echo "${OCI_BUILD_RUN_ID}" | rev | cut -c 1-7)
       echo "BUILDRUN_HASH: ${BUILDRUN_HASH}"
 
@@ -31,10 +30,14 @@ steps:
       export DOCKER_TAG="${REGISTRY}:${IMAGE_VERSION}"
       echo "DOCKER_TAG: ${DOCKER_TAG}"
 
-      # Build docker image
+      # Build Docker image
       docker build -t ${DOCKER_TAG} .
 
+      # Optionally, tag as latest
+      docker tag ${DOCKER_TAG} ${REGISTRY}:latest
+      echo "Docker image built: ${DOCKER_TAG} and tagged as latest"
+
 outputArtifacts:
-  - name: docker-image
+  - name: docker-image           
     type: DOCKER_IMAGE
     location: ${DOCKER_TAG}
