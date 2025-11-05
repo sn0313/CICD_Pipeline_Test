@@ -14,16 +14,6 @@ env:
     - BUILDRUN_HASH
     - DOCKER_TAG
 
-inputArtifacts:
-  # No input artifacts needed in this build
-  - name: none
-    type: GENERIC_ARTIFACT
-    artifactId: "none"
-    registryId: "none"
-    path: "none"
-    version: "none"
-    location: "none"
-
 steps:
   - type: Command
     name: "Docker Build and Tag"
