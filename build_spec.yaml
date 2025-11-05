@@ -9,33 +9,20 @@ env:
     DEPLOYMENT_ENV: "stage"
     REGISTRY: "sg.ocir.io/ax3rpuvlqpux/devops-repo/myapp"
     IMAGE_CREATED_BY: "OCIDevOps"
-    OCI_USERNAME: "ax3rpuvlqpux/ong.shi.nee@vtcholding.com"      
-    OCIR_AUTH_TOKEN: "WL]SOc3k[JZ]Eeu{SVvF"  # Generated in OCI Console Auth Tokens
+
   exportedVariables:
     - BUILDRUN_HASH
     - DOCKER_TAG
 
 steps:
+
   - type: Command
-    name: "Docker Build and Push"
+    name: "Docker Build and Tag"
     timeoutInSeconds: 3000
     command: |
-      echo "Starting build step..."
+      echo "Starting build..."
 
-      # Ensure credentials are set
-      if [ -z "$OCI_USERNAME" ] || [ -z "$OCIR_AUTH_TOKEN" ]; then
-        echo "OCI_USERNAME or OCIR_AUTH_TOKEN not set. Exiting."
-        exit 1
-      fi
-
-      # Login to OCIR
-      echo $OCIR_AUTH_TOKEN | docker login sg.ocir.io -u $OCI_USERNAME --password-stdin
-      if [ $? -ne 0 ]; then
-        echo "Docker login failed. Exiting."
-        exit 1
-      fi
-
-      # Extract 7-char hash from Build Run ID
+      # Extract 7-char hash from the Build Run ID
       export BUILDRUN_HASH=$(echo "${OCI_BUILD_RUN_ID}" | rev | cut -c 1-7)
       echo "BUILDRUN_HASH: ${BUILDRUN_HASH}"
 
@@ -44,17 +31,10 @@ steps:
       export DOCKER_TAG="${REGISTRY}:${IMAGE_VERSION}"
       echo "DOCKER_TAG: ${DOCKER_TAG}"
 
-      # Build Docker image
+      # Build docker image
       docker build -t ${DOCKER_TAG} .
 
-      # Push Docker image to OCIR
-      docker push ${DOCKER_TAG}
-      if [ $? -ne 0 ]; then
-        echo "Docker push failed. Exiting."
-        exit 1
-      fi
-
-    outputArtifacts:
-      - name: dockerImage
-        type: DOCKER_IMAGE
-        location: ${DOCKER_TAG}
+outputArtifacts:
+  - name: dockerImage
+    type: DOCKER_IMAGE
+    location: ${DOCKER_TAG}
