@@ -1,0 +1,23 @@
+version: 0.1
+component: deployment
+timeoutInSeconds: 1800
+shell: bash
+runAs: root
+
+steps:
+  - type: Command
+    name: "Deploy Web PHP App to Compute Instance"
+    command: |
+      echo "Pulling latest Docker image..."
+      docker pull ${dockerImage.location}
+
+      echo "Stopping old container (if any)..."
+      docker stop myapp || true
+
+      echo "Removing old container (if any)..."
+      docker rm myapp || true
+
+      echo "Starting new container..."
+      docker run -d --name myapp -p 8080:8080 ${dockerImage.location}
+
+      echo "Deployment completed successfully."
