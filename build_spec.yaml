@@ -7,7 +7,7 @@ failImmediatelyOnError: true
 env:
   variables:
     DEPLOYMENT_ENV: "stage"
-    REGISTRY: "sg.ocir.io/ax3rpuvlqpux/devops-repo"
+    REGISTRY: "sin.ocir.io/ax3rpuvlqpux/devops-repo/version-one"
     IMAGE_NAME: "myapp"
     IMAGE_CREATED_BY: "OCIDevOps"
   exportedVariables:
