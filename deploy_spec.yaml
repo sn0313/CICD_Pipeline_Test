@@ -1,5 +1,6 @@
 version: 1.0
 component: deployment
+
 env:
   variables:
     version: ${APP_VERSION}
@@ -12,21 +13,21 @@ steps:
   - stepType: Command
     name: Setup ENV
     command: |
-       # Install Apache
-       sudo dnf install httpd -y
+      # Install Apache HTTP server
+      sudo dnf install httpd -y
 
-       # Enable and start Apache
-       sudo systemctl enable httpd --now
+      # Enable and start Apache
+      sudo systemctl enable httpd --now
 
-       # Open HTTP port
-       sudo firewall-cmd --permanent --zone=public --add-service=http
-       sudo firewall-cmd --reload
+      # Open HTTP port in firewall
+      sudo firewall-cmd --permanent --zone=public --add-service=http
+      sudo firewall-cmd --reload
     timeoutInSeconds: 600
 
   - stepType: Command
     name: Install Apache Web Server
     command: |
-      # Remove default Apache test page (prevents override)
+      # Remove default Apache test page to avoid conflicts
       sudo rm -f /etc/httpd/conf.d/welcome.conf
 
       # Determine environment color based on hostname
@@ -36,10 +37,9 @@ steps:
           bg_color="BLUE"
       fi
 
-      # Create index.html with sudo
-      echo "<body><b>With Love from OCI Devops (Version: ${APP_VERSION}), Served via environment: <font color=${bg_color}>${bg_color}</font></b></body>" | sudo tee /var/www/html/index.html > /dev/null
+      # Create index.html using the local shell variable $bg_color
+      echo "<body><b>With Love from OCI Devops (Version: ${APP_VERSION}), Served via environment: <font color=$bg_color>$bg_color</font></b></body>" | sudo tee /var/www/html/index.html > /dev/null
 
       # Restart Apache to pick up changes
       sudo systemctl restart httpd
     timeoutInSeconds: 600
-
