@@ -12,9 +12,8 @@ steps:
   - stepType: Command
     name: Setup ENV
     command: |
-       sudo yum install httpd -y
-       sudo apachectl start
-       sudo systemctl enable httpd
+       sudo dnf install httpd -y
+       sudo systemctl enable httpd --now
        sudo firewall-cmd --permanent --zone=public --add-service=http
        sudo firewall-cmd --reload
     timeoutInSeconds: 600
