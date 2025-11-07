@@ -12,15 +12,13 @@ steps:
   - stepType: Command
     name: Setup ENV
     command: |
-       # Stop NGINX if it exists
-       sudo systemctl stop nginx || true
-       sudo systemctl disable nginx || true
-
-       # Install and start Apache
+       # Install Apache
        sudo dnf install httpd -y
+
+       # Enable and start Apache
        sudo systemctl enable httpd --now
 
-       # Open firewall port 80
+       # Open HTTP port
        sudo firewall-cmd --permanent --zone=public --add-service=http
        sudo firewall-cmd --reload
     timeoutInSeconds: 600
@@ -28,12 +26,20 @@ steps:
   - stepType: Command
     name: Install Apache Web Server
     command: |
+      # Remove default Apache test page (prevents override)
+      sudo rm -f /etc/httpd/conf.d/welcome.conf
+
+      # Determine environment color based on hostname
       hname=$(hostname)
       bg_color="GREEN"
       if [[ $hname == blue* ]]; then
           bg_color="BLUE"
       fi
-      sudo truncate -s 0 /var/www/html/index.html
-      sudo chmod 766 /var/www/html/index.html
-      echo "<body><b>With Love from OCI Devops(Version:${APP_VERSION}) ,Served via environment:<font color=$bg_color>$bg_color</font></body>" > /var/www/html/index.html
+
+      # Create index.html with sudo
+      echo "<body><b>With Love from OCI Devops (Version: ${APP_VERSION}), Served via environment: <font color=${bg_color}>${bg_color}</font></b></body>" | sudo tee /var/www/html/index.html > /dev/null
+
+      # Restart Apache to pick up changes
+      sudo systemctl restart httpd
     timeoutInSeconds: 600
+
