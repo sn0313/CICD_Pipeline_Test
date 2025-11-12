@@ -2,9 +2,7 @@ pipeline {
     agent any
 
     environment {
-        // Your GitHub credentials ID (must match Jenkins credentials)
-        GITHUB_CREDS = 'github-creds'
-        PROD_REPO = 'https://github.com/sn0313/cicd-prod.git'
+        GITHUB_CREDS = 'github-token' // Jenkins credential ID (username + token)
     }
 
     stages {
@@ -22,7 +20,7 @@ pipeline {
                     if [ -f index.html ]; then
                         echo "Test passed"
                     else
-                        echo "index.html missing, test failed"
+                        echo "Test failed: index.html missing"
                         exit 1
                     fi
                 '''
@@ -41,8 +39,10 @@ pipeline {
                         git config --global user.email "jenkins@myci.com"
                         git config --global user.name "Jenkins CI"
 
-                        # Clone production repo fresh each time
+                        # Clean previous clone
                         rm -rf cicd-prod
+
+                        # Clone production repo
                         git clone https://${USER}:${TOKEN}@github.com/sn0313/cicd-prod.git
 
                         # Copy only index.html into prod repo
@@ -51,10 +51,14 @@ pipeline {
                         cd cicd-prod
                         git add index.html
 
-                        # Commit if there are changes
-                        git diff --staged --quiet || git commit -m "Auto-sync from cicd-dev on $(date)"
-
-                        git push origin main
+                        # Commit and push changes if any
+                        if ! git diff --staged --quiet; then
+                            git commit -m "Auto-sync from cicd-dev on $(date)"
+                            git pull --rebase origin main || true
+                            git push origin main
+                        else
+                            echo "No changes to commit."
+                        fi
                     '''
                 }
             }
@@ -63,10 +67,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ CI Pipeline succeeded and mirrored to cicd-prod!'
+            echo 'CI Pipeline completed successfully!'
         }
         failure {
-            echo '❌ CI Pipeline failed!'
+            echo 'CI Pipeline failed!'
         }
     }
 }
