@@ -44,33 +44,11 @@ pipeline {
 
                         # Clone production repo
                         git clone https://${USER}:${TOKEN}@github.com/sn0313/cicd-prod.git
-
-                        # Copy only index.html into prod repo
-                        cp index.html cicd-prod/index.html
-
                         cd cicd-prod
-                        git add index.html
 
-                        # Commit and push changes if any
-                        if ! git diff --staged --quiet; then
-                            git commit -m "Auto-sync from cicd-dev on $(date)"
-                            git pull --rebase origin main || true
-                            git push origin main
-                        else
-                            echo "No changes to commit."
-                        fi
-                    '''
-                }
-            }
-        }
-    }
+                        # Pull latest changes from prod first
+                        git pull --rebase origin main || true
 
-    post {
-        success {
-            echo 'CI Pipeline completed successfully!'
-        }
-        failure {
-            echo 'CI Pipeline failed!'
-        }
-    }
-}
+                        # Copy only index.html from dev repo
+                        cp ../index.html inde
+
