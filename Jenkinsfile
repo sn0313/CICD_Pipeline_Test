@@ -1,6 +1,12 @@
 pipeline {
     agent any
 
+    environment {
+        // Your GitHub credentials ID (must match Jenkins credentials)
+        GITHUB_CREDS = 'github-creds'
+        PROD_REPO = 'https://github.com/sn0313/cicd-prod.git'
+    }
+
     stages {
         stage('Build') {
             steps {
@@ -12,22 +18,43 @@ pipeline {
         stage('Test') {
             steps {
                 echo "Running tests..."
-                sh 'if [ -f index.html ]; then echo "Test passed"; else exit 1; fi'
+                sh '''
+                    if [ -f index.html ]; then
+                        echo "Test passed"
+                    else
+                        echo "index.html missing, test failed"
+                        exit 1
+                    fi
+                '''
             }
         }
 
         stage('Promote to Prod') {
             when {
-                branch 'main' // Only mirror if main branch passes
+                expression { env.BRANCH_NAME == 'main' || env.GIT_BRANCH?.endsWith('/main') }
             }
             steps {
-                echo "Mirroring code to production repo..."
-                withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
+                echo "Mirroring only index.html to cicd-prod repository..."
+
+                withCredentials([usernamePassword(credentialsId: env.GITHUB_CREDS, usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
                     sh '''
-                    git config --global user.email "jenkins@myci.com"
-                    git config --global user.name "Jenkins CI"
-                    git remote add prod https://${USER}:${TOKEN}@github.com/sn0313/cicd-prod.git || true
-                    git push prod main --force
+                        git config --global user.email "jenkins@myci.com"
+                        git config --global user.name "Jenkins CI"
+
+                        # Clone production repo fresh each time
+                        rm -rf cicd-prod
+                        git clone https://${USER}:${TOKEN}@github.com/sn0313/cicd-prod.git
+
+                        # Copy only index.html into prod repo
+                        cp index.html cicd-prod/index.html
+
+                        cd cicd-prod
+                        git add index.html
+
+                        # Commit if there are changes
+                        git diff --staged --quiet || git commit -m "Auto-sync from cicd-dev on $(date)"
+
+                        git push origin main
                     '''
                 }
             }
@@ -35,8 +62,11 @@ pipeline {
     }
 
     post {
-        success { echo "CI Pipeline succeeded and mirrored to prod." }
-        failure { echo "CI Pipeline failed." }
+        success {
+            echo '✅ CI Pipeline succeeded and mirrored to cicd-prod!'
+        }
+        failure {
+            echo '❌ CI Pipeline failed!'
+        }
     }
 }
-
